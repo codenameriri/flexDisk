@@ -11,8 +11,7 @@ void draw(){
   if(frameCount % 10 == 0){
     rotate(radians(frameCount *2 % 360));    
     background(170, 121, 240);
-    
-    flexValue = random(100); //Data from the flex sensor should go here
+     flexValue = random(100); //Data from the flex sensor should go here
     //println("flex Value: " + flexValue);
     
     drawDisk();
