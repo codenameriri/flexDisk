@@ -1,37 +1,52 @@
-// Include for hashmaps
-import java.util.Map;
+import processing.serial.*;
+import org.firmata.*;
+import cc.arduino.*;
+import java.util.Map; // Include for hashmaps
 
 // Use a hashmap to pass in inputs. key = name of input (flex, pressure, brainwave, pulse). value = tick rate (how often you want that input to update it's data, in ms).
 HashMap<String,Integer> inputSettings = new HashMap<String,Integer>();
 DataGenerator exampleGenerator;
 
-float flexValue;
+Serial port; //serial port
 
-int numPts = 64;
+float flexValue;
+float flexRange = 1024; 
+
+int numPts = 32;
 float minRadius = 100;
-float radiusRange = 75;
+float radiusRange = 50;
 
 PVector[] points = new PVector[numPts]; // Stores the circle's points
 float angle = TWO_PI/numPts;
 
+// Arduino object and properties
+Arduino arduino;
+int potPin = 2;
+boolean play = true;
 
 void setup(){
   size(600, 600);
+  println(Arduino.list());
+  arduino = new Arduino(this, "COM4", 57600);
   
+
   inputSettings.put("flex", 1000);
-  
   // Create generator, passing it our settings.
   exampleGenerator = new DataGenerator( inputSettings );
 }
 
 void draw(){
   translate(width/2, height/2);
+ 
   background(170, 121, 240);
   drawDisk(); 
   
   // Data from the flex sensor 
-  // flexValue = random(100); 
-  flexValue = Float.parseFloat(exampleGenerator.getInput("flex"));  
+  flexValue =  arduino.analogRead(potPin) ;
+ 
+ //Data from Data Generator
+ //flexValue = Float.parseFloat(exampleGenerator.getInput("flex"));  
+ 
   println("flex Value: " + flexValue);
  
   noFill();
@@ -46,7 +61,7 @@ void draw(){
     points[n] = new PVector(xPt,yPt);
       
     // The flex values(fValue) are proportional to the radiusRange  
-    float radius = minRadius + (( radiusRange * flexValue )/100); 
+    float radius = minRadius + (( radiusRange * flexValue )/flexRange);  
     //println("Radius: " + radius);
     
     //changes the raidus value depending on the flexValue range
@@ -79,7 +94,7 @@ void draw(){
      
     }// END for
     endShape(CLOSE);
-
+ 
 }//END draw()
 
 // Draws the disk in the background
@@ -94,4 +109,4 @@ void drawDisk(){
   strokeWeight(2);
   fill(170, 121, 240); // Has to be the same color as the background
   ellipse(0, 0, 65, 65);
-}
+}//END darwDisk()
