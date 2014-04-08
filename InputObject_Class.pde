@@ -1,32 +1,47 @@
-class InputObject{
-
-  /* vars */
-  // global to inputs
-  String type;          // input type
+/**
+ * @author    Thomas Conroy <tdc5536@rit.edu>
+ * @version   1.0
+ * @since     2014-03-10
+ */
+public class InputObject extends Thread {
+  /********************
+    PROPERTIES
+  ********************/
+  // gvars
+  String type;          // input type / thread name
   int tickRate;         // the rate to tick at
   int elapsedTime;      // time since last tick
   String lastTickValue; // the value returned in the last tick 
 
+  // thread vars
+  boolean running;      // == true if thread is running 
+
   // flex / pressure
-  int seedValue;
+  int fp_seedValue;
   int xSig;
   int fp_currentVal;
-  // pulse
   
+  // pulse
+  int pu_currentVal;
+  int pu_seedValue;
+
   // brainwave
   StringList bw_refinedLines = new StringList();
   int bw_currentLine = 0;
 
-  /* constructor */
+  /********************
+    CONSTRUCTOR
+  ********************/
   InputObject(String type, int tickRate){
-
+    
     // setup properties
+    this.running     = false; // disable thread running by default
     this.type        = type;
     this.tickRate    = tickRate;
     this.elapsedTime = millis();
     
     if( this.type == "flex" || this.type == "pressure" ){
-      seedValue = round(random(0,100)); // set random starting point 
+      fp_seedValue = round(random(0,100)); // set random starting point 
     } 
     
     if(this.type == "brainwave"){
@@ -41,41 +56,71 @@ class InputObject{
     }
     
     if( this.type == "pulse" ){
-      // TODO
+      // set seed value for pulserate (starting pulse value)
+      pu_seedValue = round(random(75,80));
+
     }
 
-    // update the data
-    updateData();
   }
-  
-  /* methods */
- // updates data on tick 
- void updateData(){
 
-    // check if tickRate has ellapsed since last update
-    if( millis() - elapsedTime >= tickRate ){ 
-      // generate data for this tick.
+
+  /***********************
+    THREAD METHODS
+   **********************/
+  // override start method
+  void start(){
+    // enable running bool
+    running = true;
+
+    // start the thread
+    super.start();
+  }
+
+  // run method, triggered by start()
+  void run(){
+    while(running){
+      // do whatever we want to do this tick
       if( this.type == "flex" || this.type == "pressure" ){
-        fp_currentVal = this.randomWalk();
-      }
-      else if( this.type == "brainwave" ){
-        bw_currentLine += 1;
-      }
-      else if( this.type == "pulse" ){
-        // TODO generate pulse data
+        fp_currentVal = this.randomWalk(fp_currentVal, "fp");
       }
       
-      // reset the stored time for the next tick.
-      elapsedTime = millis(); 
-    } else{
+      if( this.type == "brainwave" ){
+        bw_currentLine += 1;
+        if( bw_currentLine >= bw_refinedLines.size() ){
+            // reset
+            bw_currentLine = 0;
+        }else{
+          bw_currentLine += 1;
+        }
+      }
+      
+      if( this.type == "pulse" ){
+        pu_currentVal = this.randomWalk(pu_currentVal, "pu");
+      }
+
+      // wait for next tick
       try {
-        // sleep for 10ms then recall the function
-        Thread.sleep(10); 
-        updateData();
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
+        sleep((long)(tickRate));
+      } catch (Exception e) {
+        
       }
     }
+    println(this.type + " Thread is done.");
+  }
+
+  // method to quit the thread
+  void quit() {
+    println("Quitting thread..");
+    this.running = false; // terminate the loop
+    interrupt();
+  }
+  
+ /*********************
+    CUSTOM METHODS
+ *********************/
+ // updates data on tick 
+ void updateData(){
+    //
   }
   
   // retrieve current data
@@ -96,7 +141,7 @@ class InputObject{
     }
     
     if( this.type == "pulse" ){
-      // TODO - create return string for pulse
+      returnStr = Integer.toString(pu_currentVal);
     }
     
     return returnStr;
@@ -109,11 +154,23 @@ class InputObject{
 
   // generates a trended value between 0 and 100 
   // ( for flex and pressure sensors )
-  private int randomWalk(){
-    xSig = seedValue +  (int)random(-10,10);
-    if(xSig < 0)        {xSig = 0;}
-    else if(xSig > 100) {xSig = 100;}
-    else                {seedValue = xSig;}
+  private int randomWalk(int seedVal, String sensorType ){
+    
+    if( sensorType == "pu" ){
+      xSig = seedVal +  (int)random(-2,2);
+      if(xSig < 60)       {xSig = 60;}
+      else if(xSig > 80) {xSig = 80;}
+      else               {seedVal = xSig;}
+    }
+
+    if( sensorType == "fp" ){
+      xSig = seedVal +  (int)random(-10,10);
+      if(xSig < 0)        {xSig = 0;}
+      else if(xSig > 100) {xSig = 100;}
+      else                {seedVal = xSig;}
+    }
+
+
     return xSig;
   }
 
